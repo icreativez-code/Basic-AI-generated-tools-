@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>File Lister: Generate list of file names (up to 150+ files)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      max-width: 1100px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(0px);
+      border-radius: 2rem;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .header {
+      background: #1e2b3c;
+      padding: 1.5rem 2rem;
+      color: white;
+    }
+
+    .header h1 {
+      margin: 0 0 0.25rem;
+      font-weight: 600;
+      font-size: 1.8rem;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header h1::before {
+      content: "📂";
+      font-size: 1.8rem;
+    }
+
+    .header p {
+      margin: 0.5rem 0 0;
+      opacity: 0.85;
+      font-size: 0.95rem;
+    }
+
+    .content {
+      padding: 2rem 2rem 2rem 2rem;
+    }
+
+    .upload-zone {
+      background: #f9fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 1.5rem;
+      padding: 1.8rem 1.5rem;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      margin-bottom: 2rem;
+    }
+
+    .upload-zone:hover {
+      border-color: #3b82f6;
+      background: #f1f5fe;
+    }
+
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #1e2b3c;
+      color: white;
+      font-weight: 500;
+      padding: 0.7rem 1.8rem;
+      border-radius: 60px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border: none;
+    }
+
+    .file-input-label:hover {
+      background: #0f2a38;
+    }
+
+    .file-input-label:active {
+      transform: scale(0.97);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .info-badge {
+      display: inline-block;
+      background: #e2e8f0;
+      border-radius: 40px;
+      padding: 0.3rem 1rem;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+      color: #1e293b;
+    }
+
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .stats {
+      background: #eef2ff;
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #1e40af;
+    }
+
+    button {
+      background: white;
+      border: 1px solid #cbd5e1;
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button.primary-copy {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: white;
+    }
+
+    button.primary-copy:hover {
+      background: #1e293b;
+    }
+
+    button:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    .file-list-container {
+      background: #ffffff;
+      border-radius: 1.2rem;
+      border: 1px solid #e9edf2;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      padding: 0.8rem 1.2rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #334155;
+      letter-spacing: 0.3px;
+    }
+
+    .file-list {
+      max-height: 460px;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace, system-ui;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 1.2rem;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 0.9rem;
+      transition: background 0.1s;
+    }
+
+    .file-item:hover {
+      background: #fafcff;
+    }
+
+    .file-icon {
+      margin-right: 12px;
+      font-size: 1.2rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .file-name {
+      word-break: break-all;
+      flex: 1;
+      color: #0f172a;
+    }
+
+    .file-index {
+      background: #eef2ff;
+      width: 32px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-right: 16px;
+      color: #1e3a8a;
+    }
+
+    .empty-message {
+      padding: 2.5rem;
+      text-align: center;
+      color: #64748b;
+      background: #fefefe;
+    }
+
+    footer {
+      margin-top: 1rem;
+      font-size: 0.7rem;
+      text-align: center;
+      color: #6c757d;
+      border-top: 1px solid #eef2f6;
+      padding: 1rem 2rem 1.2rem;
+    }
+
+    @media (max-width: 640px) {
+      .content {
+        padding: 1.5rem;
+      }
+      .file-item {
+        flex-wrap: wrap;
+        padding: 0.7rem 1rem;
+      }
+      .file-index {
+        margin-right: 10px;
+      }
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      button {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Folder File Name Extractor</h1>
+    <p>Select a folder containing up to 150+ files — instantly generate a clean list of all file names.</p>
+  </div>
+
+  <div class="content">
+    <!-- Folder selection via directory upload (webkitdirectory) -->
+    <div class="upload-zone" id="dropZone">
+      <label class="file-input-label">
+        📁 Choose Folder (or drag & drop)
+        <input type="file" id="folderInput" webkitdirectory directory multiple />
+      </label>
+      <div class="info-badge">
+        ⚡ Supports up to thousands of files — shows first 150+ with counter
+      </div>
+      <p style="font-size: 0.75rem; margin-top: 12px; color:#475569;">
+        Click above & select any folder from your computer. Browser reads file names only (no content uploaded anywhere).
+      </p>
+    </div>
+
+    <div class="action-bar">
+      <div class="stats" id="statsDisplay">📄 No folder selected</div>
+      <div style="display: flex; gap: 0.8rem;">
+        <button id="copyBtn" disabled>📋 Copy list to clipboard</button>
+        <button id="clearBtn" disabled>🗑 Clear list</button>
+      </div>
+    </div>
+
+    <div class="file-list-container">
+      <div class="list-header">
+        <span>📑 FILE NAMES (full list)</span>
+        <span style="font-weight: normal;">#️⃣ index | name</span>
+      </div>
+      <div id="fileListArea" class="file-list">
+        <div class="empty-message">
+          ✨ No files loaded yet.<br>
+          Click "Choose Folder" and pick a directory with up to 150 files (or any number).
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    🔍 Only file names are listed — files are never uploaded. Supports folders with any number of files.
+    Works locally in your browser. Maximum visible count is dynamic, full list shown.
+  </footer>
+</div>
+
+<script>
+  (function() {
+    // DOM elements
+    const folderInput = document.getElementById('folderInput');
+    const fileListContainer = document.getElementById('fileListArea');
+    const statsDisplay = document.getElementById('statsDisplay');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const dropZone = document.getElementById('dropZone');
+
+    // Store current file names array (strings)
+    let currentFileNames = [];   // array of file names (full names including extension)
+    let totalFileCount = 0;       // total count of files read from directory
+
+    // Helper: render file list based on currentFileNames
+    function renderFileList() {
+      if (!currentFileNames.length) {
+        fileListContainer.innerHTML = `<div class="empty-message">
+          📂 No file names to display.<br>
+          Select a folder to see the list of file names (up to 150+ files).
+        </div>`;
+        statsDisplay.innerText = `📁 No files loaded`;
+        copyBtn.disabled = true;
+        clearBtn.disabled = true;
+        return;
+      }
+
+      // enable buttons when there is data
+      copyBtn.disabled = false;
+      clearBtn.disabled = false;
+
+      const total = currentFileNames.length;
+      statsDisplay.innerText = `📄 ${total} file name${total !== 1 ? 's' : ''} loaded (total scanned: ${totalFileCount})`;
+
+      // build HTML list (using fragment for better performance)
+      const fragment = document.createDocumentFragment();
+      const wrapperDiv = document.createElement('div');
+
+      for (let i = 0; i < currentFileNames.length; i++) {
+        const fileName = currentFileNames[i];
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        // index badge
+        const indexSpan = document.createElement('span');
+        indexSpan.className = 'file-index';
+        indexSpan.textContent = (i + 1).toString();
+        
+        // file icon based on extension (simple)
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'file-icon';
+        const extension = fileName.split('.').pop().toLowerCase();
+        if (['jpg','jpeg','png','gif','webp','svg'].includes(extension)) iconSpan.textContent = '🖼️';
+        else if (['mp4','webm','mov','avi'].includes(extension)) iconSpan.textContent = '🎬';
+        else if (['pdf'].includes(extension)) iconSpan.textContent = '📄';
+        else if (['doc','docx'].includes(extension)) iconSpan.textContent = '📝';
+        else if (['xls','xlsx','csv'].includes(extension)) iconSpan.textContent = '📊';
+        else if (['mp3','wav','ogg'].includes(extension)) iconSpan.textContent = '🎵';
+        else if (['zip','rar','7z','tar'].includes(extension)) iconSpan.textContent = '🗜️';
+        else if (['html','htm','css','js','json','xml'].includes(extension)) iconSpan.textContent = '🌐';
+        else iconSpan.textContent = '📄';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'file-name';
+        nameSpan.textContent = fileName;
+        
+        fileItem.appendChild(indexSpan);
+        fileItem.appendChild(iconSpan);
+        fileItem.appendChild(nameSpan);
+        wrapperDiv.appendChild(fileItem);
+      }
+      fragment.appendChild(wrapperDiv);
+      
+      // clear container and append new content
+      fileListContainer.innerHTML = '';
+      fileListContainer.appendChild(fragment);
+    }
+
+    // Clear the current list
+    function clearFileList() {
+      currentFileNames = [];
+      totalFileCount = 0;
+      renderFileList();
+      // also clear the folder input value so that re-selecting same folder triggers change event again
+      folderInput.value = '';
+    }
+
+    // Copy current file names to clipboard as newline-separated list
+    async function copyToClipboard() {
+      if (!currentFileNames.length) {
+        // subtle feedback
+        alert('No file names to copy. Please select a folder first.');
+        return;
+      }
+      
+      const listText = currentFileNames.join('\n');
+      try {
+        await navigator.clipboard.writeText(listText);
+        // temporary visual feedback on button
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '✅ Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+        }, 1800);
+      } catch (err) {
+        console.error('Clipboard error: ', err);
+        // fallback for older browsers or permissions
+        const textarea = document.createElement('textarea');
+        textarea.value = listText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('List copied to clipboard (fallback method).');
+      }
+    }
+
+    // Process files from DataTransfer (directory read)
+    function processFilesFromDirectory(files) {
+      // files is a FileList from input.files (when using webkitdirectory)
+      // It contains all files recursively? But we only want file names relative to selected folder's root.
+      // However with webkitdirectory, the .webkitRelativePath gives path relative to chosen folder.
+      // To get clean file names (base names) without subfolder structure? The requirement is "file names list",
+      // but typical expectation: list every file's name (including extension) from the selected folder.
+      // If there are subfolders, we could flatten and show 'subfolder/filename.png' or just basename.
+      // For simplicity & clarity, we will extract the base file name (last part after last slash).
+      // But some users might want full relative path? Usually they want all file names.
+      // To match typical folder listing expectation: we show the full relative path from root of selected folder? 
+      // However requirement: "150 files, I want file names list" — usually just filenames (with extension).
+      // But to avoid confusion and duplicates (if same name in subfolders), we will show the relative path from the folder root, but not full absolute.
+      // Better: Display "filename" OR "subfolder/filename" to give context? I'll give user friendly approach: 
+      // show base name + if inside a subfolder prefix subfolder name? That might be helpful.
+      // But the generic listing: show full path relative to chosen root (clean and unambiguous). So we'll take file.webkitRelativePath and strip the first segment?
+      // Example: selected folder "MyFolder", file inside "docs/report.pdf" -> relative path = "docs/report.pdf". That's great.
+      // That's a clean representation. So we display the relative path from the folder root. That's the actual "file name list" with context.
+      // However for strict "file names" only, they can copy and edit. So we give relative paths (nice).
+      
+      if (!files || files.length === 0) {
+        currentFileNames = [];
+        totalFileCount = 0;
+        renderFileList();
+        return;
+      }
+      
+      // collect unique relative paths (should be unique per file)
+      const filePaths = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // webkitRelativePath is only present when using webkitdirectory
+        let relativePath = file.webkitRelativePath;
+        if (!relativePath && file.name) {
+          // fallback for normal file inputs (but we use directory mode, so should have webkitRelativePath)
+          relativePath = file.name;
+        }
+        if (relativePath) {
+          // Remove the root folder name from the path? The webkitRelativePath includes the top-level folder name.
+          // Example: "SelectedFolder/subfolder/file.txt" — we may want to keep the whole relative path.
+          // But sometimes they want just file names ignoring folder structure. I'll show relative path because it gives clarity.
+          // But for a pure "file names" list, user might want only basename. Let's make it configurable? but simpler: show full relative path.
+          // However many people just want list of filenames (ignoring subfolders) — I'll provide a toggle? but to keep clean, we show full relative path
+          // plus we also display an additional note. But to respect 150 files and generate list, user can later rename in text editor. 
+          // I choose to show the full path relative to root folder, making it easier to identify files inside nested directories.
+          filePaths.push(relativePath);
+        } else {
+          // fallback name only if no path
+          filePaths.push(file.name);
+        }
+      }
+      
+      // sort alphabetically for better readability (natural order)
+      filePaths.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+      
+      totalFileCount = filePaths.length;
+      currentFileNames = [...filePaths];   // store all file names (relative paths)
+      
+      renderFileList();
+    }
+
+    // Handler for folder input change
+    function onFolderSelected(event) {
+      const files = event.target.files;
+      if (!files || files.length === 0) {
+        // maybe user cancelled
+        if (currentFileNames.length === 0) {
+          statsDisplay.innerText = `📁 No folder selected`;
+        }
+        return;
+      }
+      processFilesFromDirectory(files);
+    }
+
+    // Drag and drop support (folder drop not fully supported by all browsers for directories, but we can accept dropped files)
+    // Enhance: Allow dropping multiple files (or folder drag). Chrome/Edge allow dropping directory that gives files with webkitRelativePath.
+    function setupDragAndDrop() {
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#3b82f6';
+        dropZone.style.background = '#eef4ff';
+      });
+      
+      dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f9fafc';
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f9fafc';
+        
+        const items = e.dataTransfer.items;
+        if (!items || items.length === 0) return;
+        
+        // To handle directory drop: we need to traverse using FileSystem API? 
+        // Standard drag-drop of a folder from OS gives a DataTransferItem with kind 'file' and webkitGetAsEntry.
+        // Let's support folder drag & drop using entry API (powerful).
+        const entries = [];
+        const collectEntries = (item) => {
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry) entries.push(entry);
+        };
+        
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === 'file') {
+            collectEntries(item);
+          }
+        }
+        
+        if (entries.length > 0 && entries[0] && entries[0].isDirectory) {
+          // recursively read directory
+          const allFiles = [];
+          const readDirectory = (dirEntry, pathPrefix = '') => {
+            const reader = dirEntry.createReader();
+            const readEntries = () => {
+              reader.readEntries(async (results) => {
+                if (!results.length) {
+                  // done this batch
+                  return;
+                }
+                for (const entry of results) {
+                  if (entry.isFile) {
+                    // get relative path (pathPrefix + entry.name)
+                    const relPath = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
+                    // we need a File object? For name only we don't need file content. But for consistency we just store path name.
+                    // we'll create a pseudo file-like but we only need relative path.
+                    allFiles.push({ name: relPath });
+                  } else if (entry.isDirectory) {
+                    const subPath = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
+                    await readDirectory(entry, subPath);
+                  }
+                }
+                // recursively read more entries in same directory
+                readEntries();
+              }, (err) => console.warn("read error", err));
+            };
+            readEntries();
+          };
+          
+          // handle async: since we need to wait for all recursive reads, we use Promise with final callback.
+          // For simplicity, we also support folder input method, but drag-drop directory is a great addition.
+          // Using a more robust promise based approach:
+          const readAllFilesFromDirectory = (dirEntry) => {
+            return new Promise((resolve) => {
+              const filePaths = [];
+              const reader = dirEntry.createReader();
+              const readBatch = () => {
+                reader.readEntries(async (entries) => {
+                  if (entries.length === 0) {
+                    resolve(filePaths);
+                    return;
+                  }
+                  for (const entry of entries) {
+                    if (entry.isFile) {
+                      filePaths.push(entry.name); // but to get full relative path we need prefix from root.
+                      // For simplicity because we get root dir entry, we could reconstruct path, but due to complexity,
+                      // we rely primarily on the input folder picker which is standard. Drag drop directory is more complex without webkitRelativePath.
+                      // Instead we show fallback: Use File API directory input is the recommended robust method.
+                      // For drag drop we can emulate by reading full entry but for 150 files we want stability. 
+                      // I'll implement a simpler: just alert to use folder picker for best results, or we handle nicely.
+                    } else if (entry.isDirectory) {
+                      const subFiles = await readAllFilesFromDirectory(entry);
+                      filePaths.push(...subFiles.map(f => entry.name + '/' + f));
+                    }
+                  }
+                  readBatch();
+                });
+              };
+              readBatch();
+            });
+          };
+          
+          if (entries[0] && entries[0].isDirectory) {
+            readAllFilesFromDirectory(entries[0]).then(paths => {
+              if (paths.length) {
+                paths.sort();
+                totalFileCount = paths.length;
+                currentFileNames = paths.slice();
+                renderFileList();
+              } else {
+                alert("No files found in the dropped folder.");
+              }
+            }).catch(err => {
+              console.warn("Drop folder read error", err);
+              alert("Unable to read folder via drag & drop. Please use the 'Choose Folder' button for full compatibility.");
+            });
+          } else {
+            // if it's just files (multiple files)
+            const fileObjs = [];
+            for (let i = 0; i < items.length; i++) {
+              const fileItem = items[i].getAsFile();
+              if (fileItem) fileObjs.push(fileItem);
+            }
+            if (fileObjs.length) {
+              const names = fileObjs.map(f => f.name);
+              names.sort();
+              currentFileNames = names;
+              totalFileCount = names.length;
+              renderFileList();
+            }
+          }
+        } else {
+          // drop multiple regular files
+          const files = [];
+          for (let i = 0; i < items.length; i++) {
+            const file = items[i].getAsFile();
+            if (file) files.push(file);
+          }
+          if (files.length) {
+            const names = files.map(f => f.name);
+            names.sort();
+            currentFileNames = names;
+            totalFileCount = names.length;
+            renderFileList();
+          } else {
+            // fallback: use the default folder input method
+            alert("For full folder support, please use the 'Choose Folder' button. Dropping a folder works best on Chrome/Edge.");
+          }
+        }
+      });
+    }
+    
+    // clear event
+    clearBtn.addEventListener('click', () => {
+      clearFileList();
+      folderInput.value = '';
+    });
+    
+    copyBtn.addEventListener('click', copyToClipboard);
+    folderInput.addEventListener('change', onFolderSelected);
+    
+    // additional: if user reselects folder with same files, change event works fine.
+    setupDragAndDrop();
+    
+    // initial state
+    renderFileList();
+  })();
+</script>
+</body>
+</html>
